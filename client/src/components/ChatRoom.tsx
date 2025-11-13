@@ -54,8 +54,8 @@ function ChatRoom({ chat, messages, onSendMessage, currentClientName }: ChatRoom
               }`}
             >
               <div className="flex items-center gap-2 mb-1">
-                <span className={`font-semibold text-xs md:text-sm ${
-                  msg.isOwn ? 'text-secondary' : 'text-primary'
+                <span className={`font-bold text-xs md:text-sm ${
+                  msg.isOwn ? 'text-[#87BAC3]' : 'text-white'
                 }`}>
                   {msg.sender}
                 </span>

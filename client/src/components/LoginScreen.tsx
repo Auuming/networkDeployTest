@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 interface LoginScreenProps {
-  onLogin: (name: string, serverUrl: string) => void;
+  onLogin: (name: string, age: number, serverUrl: string) => void;
   serverUrl: string;
   error: string;
 }
@@ -12,11 +12,16 @@ function LoginScreen({
   error,
 }: LoginScreenProps) {
   const [name, setName] = useState<string>("");
+  const [age, setAge] = useState<string>("");
   const [serverUrl, setServerUrl] = useState<string>(initialServerUrl);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin(name, serverUrl);
+    const ageNum = Number.parseInt(age, 10);
+    if (Number.isNaN(ageNum) || ageNum < 1 || ageNum > 150) {
+      return;
+    }
+    onLogin(name, ageNum, serverUrl);
   };
 
   return (
@@ -41,6 +46,23 @@ function LoginScreen({
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter your unique name"
               autoFocus
+              required
+              className="p-3 border-2 border-gray-700 bg-gray-800 text-white rounded-lg text-base focus:outline-none focus:border-[#87BAC3] focus:bg-[#D6F4ED] focus:text-gray-900 transition-colors placeholder-gray-500"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="age" className="font-medium text-gray-300 text-sm">
+              Your Age
+            </label>
+            <input
+              id="age"
+              type="number"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              placeholder="Enter your age"
+              min="1"
+              max="150"
               required
               className="p-3 border-2 border-gray-700 bg-gray-800 text-white rounded-lg text-base focus:outline-none focus:border-[#87BAC3] focus:bg-[#D6F4ED] focus:text-gray-900 transition-colors placeholder-gray-500"
             />

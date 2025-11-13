@@ -22,20 +22,42 @@ function GroupManager({
   const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
   const [groupName, setGroupName] = useState<string>("");
   const [isCreating, setIsCreating] = useState<boolean>(false);
+  const [hasMinimumAge, setHasMinimumAge] = useState<boolean>(false);
+  const [minimumAge, setMinimumAge] = useState<string>("");
 
   const handleCreateGroup = (e: React.FormEvent) => {
     e.preventDefault();
     if (!groupName.trim() || isCreating) return;
 
+    const minAge =
+      hasMinimumAge && minimumAge.trim()
+        ? Number.parseInt(minimumAge.trim(), 10)
+        : undefined;
+
+    if (
+      hasMinimumAge &&
+      (Number.isNaN(minAge as number) ||
+        (minAge as number) < 1 ||
+        (minAge as number) > 150)
+    ) {
+      alert("Please enter a valid minimum age (1-150)");
+      return;
+    }
+
     setIsCreating(true);
     socket.emit(
       "createGroup",
-      { groupName: groupName.trim() },
+      {
+        groupName: groupName.trim(),
+        minimumAge: minAge,
+      },
       (response: { success: boolean; group?: Group; error?: string }) => {
         setIsCreating(false);
         if (response.success && response.group) {
           onGroupCreated(response.group);
           setGroupName("");
+          setHasMinimumAge(false);
+          setMinimumAge("");
           setShowCreateForm(false);
         } else {
           alert(response.error || "Failed to create group");
@@ -92,6 +114,65 @@ function GroupManager({
             disabled={isCreating}
             className="w-full p-2 border border-gray-700 bg-gray-900 text-white rounded-md text-sm md:text-base mb-2 focus:outline-none focus:border-[#87BAC3] focus:bg-[#D6F4ED] focus:text-gray-900 transition-colors placeholder-gray-500"
           />
+          <div className="mb-2 flex items-center gap-3 p-2.5 rounded-lg border border-gray-700 bg-gray-800/50 hover:bg-gray-800 transition-colors">
+            <div className="relative flex items-center">
+              <input
+                type="checkbox"
+                id="hasMinimumAge"
+                checked={hasMinimumAge}
+                onChange={(e) => {
+                  setHasMinimumAge(e.target.checked);
+                  if (!e.target.checked) {
+                    setMinimumAge("");
+                  }
+                }}
+                disabled={isCreating}
+                className="sr-only"
+              />
+              <label
+                htmlFor="hasMinimumAge"
+                className={`flex items-center justify-center w-5 h-5 rounded-md border-2 cursor-pointer transition-all ${
+                  hasMinimumAge
+                    ? "bg-primary border-transparent shadow-lg shadow-primary/30"
+                    : "border-gray-600 bg-gray-900 hover:border-[#87BAC3]"
+                } ${isCreating ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                {hasMinimumAge && (
+                  <svg
+                    className="w-3 h-3 text-white"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="3"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path d="M5 13l4 4L19 7"></path>
+                  </svg>
+                )}
+              </label>
+            </div>
+            <label
+              htmlFor="hasMinimumAge"
+              className={`text-sm cursor-pointer flex-1 ${
+                hasMinimumAge ? "text-gray-200 font-medium" : "text-gray-400"
+              } ${isCreating ? "cursor-not-allowed" : ""}`}
+            >
+              Set minimum age requirement
+            </label>
+          </div>
+          {hasMinimumAge && (
+            <input
+              type="number"
+              value={minimumAge}
+              onChange={(e) => setMinimumAge(e.target.value)}
+              placeholder="Minimum age (1-150)"
+              min="1"
+              max="150"
+              disabled={isCreating}
+              className="w-full p-2 border border-gray-700 bg-gray-900 text-white rounded-md text-sm md:text-base mb-2 focus:outline-none focus:border-[#87BAC3] focus:bg-[#D6F4ED] focus:text-gray-900 transition-colors placeholder-gray-500"
+            />
+          )}
           <div className="flex gap-2">
             <button
               type="submit"
@@ -105,6 +186,8 @@ function GroupManager({
               onClick={() => {
                 setShowCreateForm(false);
                 setGroupName("");
+                setHasMinimumAge(false);
+                setMinimumAge("");
               }}
               className="flex-1 p-2 border-none rounded-md text-xs md:text-sm font-medium cursor-pointer transition-colors bg-gray-700 text-gray-200 hover:bg-gray-600"
             >
@@ -154,6 +237,13 @@ function GroupManager({
                   <small>
                     Members: {group.members.map((m) => m.name).join(", ")}
                   </small>
+                  {group.minimumAge && (
+                    <div className="mt-1">
+                      <small className="text-[#87BAC3] font-semibold">
+                        Minimum age: {group.minimumAge}+
+                      </small>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   {isMember ? (

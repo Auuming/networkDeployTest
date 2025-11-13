@@ -3,16 +3,19 @@ import { Socket } from 'socket.io-client';
 export interface Client {
   name: string;
   socketId: string;
+  age: number;
 }
 
 export interface GroupMember {
   name: string;
   socketId: string;
+  age?: number;
 }
 
 export interface GroupCreator {
   name: string;
   socketId: string;
+  age?: number;
 }
 
 export interface Group {
@@ -20,6 +23,7 @@ export interface Group {
   name: string;
   creator: GroupCreator;
   members: GroupMember[];
+  minimumAge?: number;
 }
 
 export interface Message {
