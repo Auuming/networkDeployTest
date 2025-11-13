@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { ActiveChat, Message } from '../types';
+import formatText from '../utils/formatText';
 
 interface ChatRoomProps {
   chat: ActiveChat;
@@ -66,8 +67,8 @@ function ChatRoom({ chat, messages, onSendMessage, currentClientName }: ChatRoom
                   {formatTime(msg.timestamp)}
                 </span>
               </div>
-              <div 
-                style={msg.isOwn 
+              <div
+                style={msg.isOwn
                   ? { background: 'linear-gradient(to right, #473472, #53629E)' }
                   : { background: '#87BAC3', color: '#1A1625' }
                 }
@@ -77,7 +78,7 @@ function ChatRoom({ chat, messages, onSendMessage, currentClientName }: ChatRoom
                     : 'rounded-bl-sm border border-[#87BAC3]/30'
                 }`}
               >
-                {msg.message}
+                {formatText(msg.message)}
               </div>
             </div>
           ))
