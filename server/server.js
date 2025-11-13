@@ -22,7 +22,17 @@ const privateRooms = new Map();
 io.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
-  socket.on("register", (clientName, callback) => {
+  socket.on("register", ({ name: clientName, age }, callback) => {
+    if (!clientName || clientName.trim().length === 0) {
+      callback({ success: false, error: "Name cannot be empty." });
+      return;
+    }
+
+    if (!age || age < 1 || age > 150) {
+      callback({ success: false, error: "Age must be between 1 and 150." });
+      return;
+    }
+
     const nameExists = Array.from(clients.values()).some(
       (client) => client.name.toLowerCase() === clientName.toLowerCase()
     );
@@ -35,39 +45,42 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (!clientName || clientName.trim().length === 0) {
-      callback({ success: false, error: "Name cannot be empty." });
-      return;
-    }
-
     clients.set(socket.id, {
       name: clientName.trim(),
       socketId: socket.id,
+      age: age,
     });
 
-    console.log(`Client registered: ${clientName} (${socket.id})`);
+    console.log(`Client registered: ${clientName} (age: ${age}, ${socket.id})`);
 
     callback({ success: true });
 
     const clientList = Array.from(clients.values()).map((client) => ({
       name: client.name,
       socketId: client.socketId,
+      age: client.age,
     }));
     socket.emit("clientList", clientList);
 
     socket.broadcast.emit("clientJoined", {
       name: clientName.trim(),
       socketId: socket.id,
+      age: age,
     });
 
     const groupList = Array.from(groups.entries()).map(([groupId, group]) => ({
       groupId,
       name: group.name,
       creator: group.creator,
-      members: Array.from(group.members).map((memberId) => ({
-        name: clients.get(memberId)?.name || "Unknown",
-        socketId: memberId,
-      })),
+      minimumAge: group.minimumAge,
+      members: Array.from(group.members).map((memberId) => {
+        const member = clients.get(memberId);
+        return {
+          name: member?.name || "Unknown",
+          socketId: memberId,
+          age: member?.age,
+        };
+      }),
     }));
     socket.emit("groupList", groupList);
   });
@@ -133,7 +146,7 @@ io.on("connection", (socket) => {
     );
   });
 
-  socket.on("createGroup", ({ groupName }, callback) => {
+  socket.on("createGroup", ({ groupName, minimumAge }, callback) => {
     const creator = clients.get(socket.id);
     if (!creator) {
       callback({ success: false, error: "You must register first." });
@@ -145,45 +158,67 @@ io.on("connection", (socket) => {
       return;
     }
 
+    if (minimumAge !== undefined && minimumAge !== null) {
+      if (minimumAge < 1 || minimumAge > 150) {
+        callback({
+          success: false,
+          error: "Minimum age must be between 1 and 150.",
+        });
+        return;
+      }
+
+      if (minimumAge > creator.age) {
+        callback({
+          success: false,
+          error: `You cannot set minimum age (${minimumAge}) higher than your own age (${creator.age}).`,
+        });
+        return;
+      }
+    }
+
     const groupId = `group-${groupIdCounter++}`;
     const group = {
       name: groupName.trim(),
       creator: {
         name: creator.name,
         socketId: socket.id,
+        age: creator.age,
       },
       members: new Set([socket.id]),
+      minimumAge: minimumAge,
     };
 
     groups.set(groupId, group);
     socket.join(groupId);
 
-    console.log(`Group created: ${groupName} (${groupId}) by ${creator.name}`);
+    console.log(
+      `Group created: ${groupName} (${groupId}) by ${creator.name}${
+        minimumAge ? ` (min age: ${minimumAge})` : ""
+      }`
+    );
+
+    const groupResponse = {
+      groupId,
+      name: group.name,
+      creator: group.creator,
+      minimumAge: group.minimumAge,
+      members: Array.from(group.members).map((memberId) => {
+        const member = clients.get(memberId);
+        return {
+          name: member?.name || "Unknown",
+          socketId: memberId,
+          age: member?.age,
+        };
+      }),
+    };
 
     callback({
       success: true,
       groupId,
-      group: {
-        groupId,
-        name: group.name,
-        creator: group.creator,
-        members: Array.from(group.members).map((memberId) => ({
-          name: clients.get(memberId)?.name || "Unknown",
-          socketId: memberId,
-        })),
-      },
+      group: groupResponse,
     });
 
-    const groupData = {
-      groupId,
-      name: group.name,
-      creator: group.creator,
-      members: Array.from(group.members).map((memberId) => ({
-        name: clients.get(memberId)?.name || "Unknown",
-        socketId: memberId,
-      })),
-    };
-    io.emit("groupCreated", groupData);
+    io.emit("groupCreated", groupResponse);
   });
 
   socket.on("joinGroup", ({ groupId }, callback) => {
@@ -207,35 +242,43 @@ io.on("connection", (socket) => {
       return;
     }
 
+    if (group.minimumAge !== undefined && group.minimumAge !== null) {
+      if (client.age < group.minimumAge) {
+        callback({
+          success: false,
+          error: `You must be at least ${group.minimumAge} years old to join this group. Your age is ${client.age}.`,
+        });
+        return;
+      }
+    }
+
     group.members.add(socket.id);
     socket.join(groupId);
 
     console.log(`${client.name} joined group: ${group.name} (${groupId})`);
 
-    callback({
-      success: true,
-      group: {
-        groupId,
-        name: group.name,
-        creator: group.creator,
-        members: Array.from(group.members).map((memberId) => ({
-          name: clients.get(memberId)?.name || "Unknown",
-          socketId: memberId,
-        })),
-      },
-    });
-
-    const updatedGroup = {
+    const groupResponse = {
       groupId,
       name: group.name,
       creator: group.creator,
-      members: Array.from(group.members).map((memberId) => ({
-        name: clients.get(memberId)?.name || "Unknown",
-        socketId: memberId,
-      })),
+      minimumAge: group.minimumAge,
+      members: Array.from(group.members).map((memberId) => {
+        const member = clients.get(memberId);
+        return {
+          name: member?.name || "Unknown",
+          socketId: memberId,
+          age: member?.age,
+        };
+      }),
     };
-    io.to(groupId).emit("groupUpdated", updatedGroup);
-    socket.broadcast.emit("groupUpdated", updatedGroup);
+
+    callback({
+      success: true,
+      group: groupResponse,
+    });
+
+    io.to(groupId).emit("groupUpdated", groupResponse);
+    socket.broadcast.emit("groupUpdated", groupResponse);
   });
 
   socket.on("groupMessage", ({ groupId, message }) => {

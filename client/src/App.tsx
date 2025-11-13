@@ -21,11 +21,16 @@ function App() {
     }
   }, []);
 
-  const handleLogin = (name: string, url: string) => {
+  const handleLogin = (name: string, age: number, url: string) => {
     setError('');
     
     if (!name || name.trim().length === 0) {
       setError('Please enter your name');
+      return;
+    }
+
+    if (!age || age < 1 || age > 150) {
+      setError('Please enter a valid age (1-150)');
       return;
     }
 
@@ -46,7 +51,7 @@ function App() {
     newSocket.on('connect', () => {
       console.log('Connected to server');
       
-      newSocket.emit('register', name.trim(), (response: { success: boolean; error?: string }) => {
+      newSocket.emit('register', { name: name.trim(), age }, (response: { success: boolean; error?: string }) => {
         if (response.success) {
           setClientName(name.trim());
           setSocket(newSocket);
