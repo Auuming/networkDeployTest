@@ -18,6 +18,8 @@ const clients = new Map();
 const groups = new Map();
 let groupIdCounter = 1;
 const privateRooms = new Map();
+const messages = new Map();
+let messageIdCounter = 1;
 
 io.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
@@ -113,8 +115,10 @@ io.on("connection", (socket) => {
     socket.join(roomId);
     io.to(recipientId).socketsJoin(roomId);
 
+    const messageId = `msg-${messageIdCounter++}`;
     const messageData = {
       roomId,
+      messageId,
       sender: {
         name: sender.name,
         socketId: socket.id,
@@ -125,7 +129,14 @@ io.on("connection", (socket) => {
       },
       message,
       timestamp: new Date().toISOString(),
+      reactions: {},
     };
+
+    messages.set(messageId, {
+      roomId,
+      type: 'private',
+      reactions: {},
+    });
 
     console.log(`Sending private message to room ${roomId}`);
     console.log(
@@ -299,17 +310,109 @@ io.on("connection", (socket) => {
       return;
     }
 
+    const messageId = `msg-${messageIdCounter++}`;
     const messageData = {
       groupId,
+      messageId,
       sender: {
         name: sender.name,
         socketId: socket.id,
       },
       message,
       timestamp: new Date().toISOString(),
+      reactions: {},
     };
 
+    messages.set(messageId, {
+      groupId,
+      type: 'group',
+      reactions: {},
+    });
+
     io.to(groupId).emit("groupMessage", messageData);
+  });
+
+  socket.on("addReaction", ({ messageId, emoji, roomId, groupId }) => {
+    const sender = clients.get(socket.id);
+    if (!sender) {
+      socket.emit("error", { message: "You must register first." });
+      return;
+    }
+
+    const message = messages.get(messageId);
+    if (!message) {
+      socket.emit("error", { message: "Message not found." });
+      return;
+    }
+
+    if (message.type === 'private') {
+      if (message.roomId !== roomId) {
+        socket.emit("error", { message: "Invalid room." });
+        return;
+      }
+    } else if (message.type === 'group') {
+      const group = groups.get(message.groupId);
+      if (!group || !group.members.has(socket.id)) {
+        socket.emit("error", { message: "You are not a member of this group." });
+        return;
+      }
+    }
+
+    if (!message.reactions[emoji]) {
+      message.reactions[emoji] = [];
+    }
+
+    if (!message.reactions[emoji].includes(socket.id)) {
+      message.reactions[emoji].push(socket.id);
+    }
+
+    const targetRoom = message.type === 'private' ? message.roomId : message.groupId;
+    io.to(targetRoom).emit("reactionUpdate", {
+      messageId,
+      reactions: message.reactions,
+    });
+  });
+
+  socket.on("removeReaction", ({ messageId, emoji, roomId, groupId }) => {
+    const sender = clients.get(socket.id);
+    if (!sender) {
+      socket.emit("error", { message: "You must register first." });
+      return;
+    }
+
+    const message = messages.get(messageId);
+    if (!message) {
+      socket.emit("error", { message: "Message not found." });
+      return;
+    }
+
+    if (message.type === 'private') {
+      if (message.roomId !== roomId) {
+        socket.emit("error", { message: "Invalid room." });
+        return;
+      }
+    } else if (message.type === 'group') {
+      const group = groups.get(message.groupId);
+      if (!group || !group.members.has(socket.id)) {
+        socket.emit("error", { message: "You are not a member of this group." });
+        return;
+      }
+    }
+
+    if (message.reactions[emoji]) {
+      message.reactions[emoji] = message.reactions[emoji].filter(
+        (id) => id !== socket.id
+      );
+      if (message.reactions[emoji].length === 0) {
+        delete message.reactions[emoji];
+      }
+    }
+
+    const targetRoom = message.type === 'private' ? message.roomId : message.groupId;
+    io.to(targetRoom).emit("reactionUpdate", {
+      messageId,
+      reactions: message.reactions,
+    });
   });
 
   socket.on("disconnect", () => {
