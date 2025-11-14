@@ -76,7 +76,7 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
     });
 
     socket.on("privateMessage", (messageData: PrivateMessageData) => {
-      const { roomId, sender, message, timestamp, recipient } = messageData;
+      const { roomId, sender, message, timestamp, recipient, messageId, reactions } = messageData;
       console.log("Received private message:", messageData);
 
       if (sender.socketId !== socket.id && recipient.socketId === socket.id) {
@@ -102,16 +102,27 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
         const newMessages = new Map(prev);
         const roomMessages = newMessages.get(roomId) || [];
 
-        const messageExists = roomMessages.some(
+        const existingIndex = roomMessages.findIndex(
           (msg) =>
+            msg.messageId === messageId ||
+            (msg.messageId?.startsWith('temp-') &&
             msg.message === message &&
             msg.sender === sender.name &&
             Math.abs(
               new Date(msg.timestamp).getTime() - new Date(timestamp).getTime()
-            ) < 1000
+            ) < 2000)
         );
 
-        if (!messageExists) {
+        if (existingIndex >= 0) {
+          if (roomMessages[existingIndex].messageId?.startsWith('temp-') && messageId) {
+            roomMessages[existingIndex] = {
+              ...roomMessages[existingIndex],
+              messageId,
+              reactions: reactions || roomMessages[existingIndex].reactions || {},
+            };
+            newMessages.set(roomId, [...roomMessages]);
+          }
+        } else {
           console.log("Adding message to room:", roomId);
           newMessages.set(roomId, [
             ...roomMessages,
@@ -120,6 +131,8 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
               message,
               timestamp,
               isOwn: sender.socketId === socket.id,
+              messageId,
+              reactions: reactions || {},
             },
           ]);
         }
@@ -128,23 +141,34 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
     });
 
     socket.on("groupMessage", (messageData: GroupMessageData) => {
-      const { groupId, sender, message, timestamp } = messageData;
+      const { groupId, sender, message, timestamp, messageId, reactions } = messageData;
       console.log("Received group message:", messageData);
 
       setMessages((prev) => {
         const newMessages = new Map(prev);
         const roomMessages = newMessages.get(groupId) || [];
 
-        const messageExists = roomMessages.some(
+        const existingIndex = roomMessages.findIndex(
           (msg) =>
+            msg.messageId === messageId ||
+            (msg.messageId?.startsWith('temp-') &&
             msg.message === message &&
             msg.sender === sender.name &&
             Math.abs(
               new Date(msg.timestamp).getTime() - new Date(timestamp).getTime()
-            ) < 1000
+            ) < 2000)
         );
 
-        if (!messageExists) {
+        if (existingIndex >= 0) {
+          if (roomMessages[existingIndex].messageId?.startsWith('temp-') && messageId) {
+            roomMessages[existingIndex] = {
+              ...roomMessages[existingIndex],
+              messageId,
+              reactions: reactions || roomMessages[existingIndex].reactions || {},
+            };
+            newMessages.set(groupId, [...roomMessages]);
+          }
+        } else {
           newMessages.set(groupId, [
             ...roomMessages,
             {
@@ -152,10 +176,34 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
               message,
               timestamp,
               isOwn: sender.socketId === socket.id,
+              messageId,
+              reactions: reactions || {},
             },
           ]);
         }
         return newMessages;
+      });
+    });
+
+    socket.on("reactionUpdate", ({ messageId, reactions }: { messageId: string; reactions: Record<string, string[]> }) => {
+      setMessages((prev) => {
+        const newMessages = new Map(prev);
+        let updated = false;
+
+        newMessages.forEach((roomMessages, roomKey) => {
+          const updatedMessages = roomMessages.map((msg) => {
+            if (msg.messageId === messageId) {
+              updated = true;
+              return { ...msg, reactions };
+            }
+            return msg;
+          });
+          if (updated) {
+            newMessages.set(roomKey, updatedMessages);
+          }
+        });
+
+        return updated ? newMessages : prev;
       });
     });
 
@@ -173,6 +221,7 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
       socket.off("groupDeleted");
       socket.off("privateMessage");
       socket.off("groupMessage");
+      socket.off("reactionUpdate");
       socket.off("error");
     };
   }, [socket, activeChat, clients]);
@@ -207,6 +256,7 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
 
     if (activeChat.type === "private") {
       const roomId = [socket.id, activeChat.id].sort().join("-");
+      const tempMessageId = `temp-${Date.now()}-${Math.random()}`;
       setMessages((prev) => {
         const newMessages = new Map(prev);
         const roomMessages = newMessages.get(roomId) || [];
@@ -217,6 +267,8 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
             message: trimmedMessage,
             timestamp,
             isOwn: true,
+            messageId: tempMessageId,
+            reactions: {},
           },
         ]);
         return newMessages;
@@ -227,6 +279,7 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
         message: trimmedMessage,
       });
     } else if (activeChat.type === "group") {
+      const tempMessageId = `temp-${Date.now()}-${Math.random()}`;
       setMessages((prev) => {
         const newMessages = new Map(prev);
         const roomMessages = newMessages.get(activeChat.id) || [];
@@ -237,6 +290,8 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
             message: trimmedMessage,
             timestamp,
             isOwn: true,
+            messageId: tempMessageId,
+            reactions: {},
           },
         ]);
         return newMessages;
@@ -350,6 +405,8 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
               messages={currentMessages}
               onSendMessage={sendMessage}
               currentClientName={clientName}
+              socket={socket}
+              currentSocketId={socket.id || ""}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-500 text-lg md:text-xl p-5 text-center">

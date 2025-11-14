@@ -31,6 +31,8 @@ export interface Message {
   message: string;
   timestamp: string;
   isOwn: boolean;
+  messageId?: string;
+  reactions?: Record<string, string[]>;
 }
 
 export interface ActiveChat {
@@ -45,6 +47,8 @@ export interface PrivateMessageData {
   recipient: GroupMember;
   message: string;
   timestamp: string;
+  messageId?: string;
+  reactions?: Record<string, string[]>;
 }
 
 export interface GroupMessageData {
@@ -52,6 +56,8 @@ export interface GroupMessageData {
   sender: GroupMember;
   message: string;
   timestamp: string;
+  messageId?: string;
+  reactions?: Record<string, string[]>;
 }
 
 export interface ChatInterfaceProps {

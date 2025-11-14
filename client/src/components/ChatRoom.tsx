@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Socket } from 'socket.io-client';
 import { ActiveChat, Message } from '../types';
 import formatText from '../utils/formatText';
 
@@ -7,9 +8,11 @@ interface ChatRoomProps {
   messages: Message[];
   onSendMessage: (message: string) => void;
   currentClientName: string;
+  socket: Socket;
+  currentSocketId: string;
 }
 
-function ChatRoom({ chat, messages, onSendMessage, currentClientName }: ChatRoomProps) {
+function ChatRoom({ chat, messages, onSendMessage, currentClientName, socket, currentSocketId }: ChatRoomProps) {
   const [inputMessage, setInputMessage] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -30,6 +33,24 @@ function ChatRoom({ chat, messages, onSendMessage, currentClientName }: ChatRoom
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const handleDoubleClick = (msg: Message) => {
+    if (!msg.messageId) return;
+    
+    const emoji = '❤️';
+    const roomId = chat.type === 'private' 
+      ? [currentSocketId, chat.id].sort().join('-')
+      : undefined;
+    const groupId = chat.type === 'group' ? chat.id : undefined;
+
+    const hasReacted = msg.reactions?.[emoji]?.includes(currentSocketId);
+    
+    if (hasReacted) {
+      socket.emit('removeReaction', { messageId: msg.messageId, emoji, roomId, groupId });
+    } else {
+      socket.emit('addReaction', { messageId: msg.messageId, emoji, roomId, groupId });
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-gray-900">
       <div className="p-5 border-b border-gray-800 flex items-center gap-3 bg-gray-900">
@@ -47,41 +68,68 @@ function ChatRoom({ chat, messages, onSendMessage, currentClientName }: ChatRoom
             No messages yet. Start the conversation!
           </div>
         ) : (
-          messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`max-w-[70%] md:max-w-[70%] flex flex-col gap-1 ${
-                msg.isOwn ? 'self-end' : 'self-start'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`font-bold text-xs md:text-sm ${
-                  msg.isOwn ? 'text-[#87BAC3]' : 'text-white'
-                }`}>
-                  {msg.sender}
-                </span>
-                {msg.isOwn && (
-                  <span className="text-[10px] text-gray-400 italic">You</span>
-                )}
-                <span className="text-[10px] text-gray-400 ml-auto">
-                  {formatTime(msg.timestamp)}
-                </span>
-              </div>
+          messages.map((msg, index) => {
+            const messageKey = msg.messageId || `${msg.timestamp}-${index}`;
+            const hasReactions = msg.reactions && Object.keys(msg.reactions).length > 0;
+            
+            return (
               <div
-                style={msg.isOwn
-                  ? { background: 'linear-gradient(to right, #473472, #53629E)' }
-                  : { background: '#87BAC3', color: '#1A1625' }
-                }
-                className={`px-4 py-3 rounded-xl text-sm md:text-base leading-relaxed break-words ${
-                  msg.isOwn
-                    ? 'text-white rounded-br-sm shadow-lg shadow-[#473472]/30'
-                    : 'rounded-bl-sm border border-[#87BAC3]/30'
+                key={messageKey}
+                className={`max-w-[70%] md:max-w-[70%] flex flex-col gap-1 ${
+                  msg.isOwn ? 'self-end' : 'self-start'
                 }`}
               >
-                {formatText(msg.message)}
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`font-bold text-xs md:text-sm ${
+                    msg.isOwn ? 'text-[#87BAC3]' : 'text-white'
+                  }`}>
+                    {msg.sender}
+                  </span>
+                  {msg.isOwn && (
+                    <span className="text-[10px] text-gray-400 italic">You</span>
+                  )}
+                  <span className="text-[10px] text-gray-400 ml-auto">
+                    {formatTime(msg.timestamp)}
+                  </span>
+                </div>
+                <div
+                  onDoubleClick={() => handleDoubleClick(msg)}
+                  style={msg.isOwn
+                    ? { background: 'linear-gradient(to right, #473472, #53629E)' }
+                    : { background: '#87BAC3', color: '#1A1625' }
+                  }
+                  className={`px-4 py-3 rounded-xl text-sm md:text-base leading-relaxed break-words cursor-pointer transition-opacity hover:opacity-90 ${
+                    msg.isOwn
+                      ? 'text-white rounded-br-sm shadow-lg shadow-[#473472]/30'
+                      : 'rounded-bl-sm border border-[#87BAC3]/30'
+                  }`}
+                  title="Double-click to react"
+                >
+                  {formatText(msg.message)}
+                </div>
+                {hasReactions && (
+                  <div className={`flex flex-wrap gap-1.5 mt-1 ${msg.isOwn ? 'justify-end' : 'justify-start'}`}>
+                    {Object.entries(msg.reactions || {}).map(([emoji, socketIds]) => {
+                      const hasUserReacted = socketIds.includes(currentSocketId);
+                      return (
+                        <div
+                          key={emoji}
+                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+                            hasUserReacted
+                              ? 'bg-red-500/20 border border-red-500/50'
+                              : 'bg-gray-700/50 border border-gray-600/50'
+                          }`}
+                        >
+                          <span className="text-sm">{emoji}</span>
+                          <span className="text-gray-300 text-[10px]">{socketIds.length}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
