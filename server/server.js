@@ -6,9 +6,16 @@ import cors from "cors";
 const app = express();
 app.use(cors());
 
-// Health check endpoint for Railway
+// Health check endpoint for Railway - must respond quickly
 app.get("/", (req, res) => {
-  res.json({ status: "ok", message: "Chat server is running" });
+  console.log("Health check hit at /");
+  res.status(200).json({ status: "ok", message: "Chat server is running" });
+});
+
+// Health check endpoint (alternative path)
+app.get("/health", (req, res) => {
+  console.log("Health check hit at /health");
+  res.status(200).json({ status: "ok", message: "Chat server is running" });
 });
 
 const httpServer = createServer(app);
