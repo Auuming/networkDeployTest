@@ -6,6 +6,11 @@ import cors from "cors";
 const app = express();
 app.use(cors());
 
+// Health check endpoint for Railway
+app.get("/", (req, res) => {
+  res.json({ status: "ok", message: "Chat server is running" });
+});
+
 const httpServer = createServer(app);
 
 // Get allowed origins from environment variable or allow all in development
