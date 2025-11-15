@@ -15,9 +15,15 @@ function App() {
     if (savedServerUrl) {
       setServerUrl(savedServerUrl);
     } else {
-      const hostname = window.location.hostname;
-      const defaultPort = '3001';
-      setServerUrl(`http://${hostname}:${defaultPort}`);
+      // Use environment variable if available (for production), otherwise use localhost
+      const envServerUrl = import.meta.env.VITE_SERVER_URL;
+      if (envServerUrl) {
+        setServerUrl(envServerUrl);
+      } else {
+        const hostname = window.location.hostname;
+        const defaultPort = '3001';
+        setServerUrl(`http://${hostname}:${defaultPort}`);
+      }
     }
   }, []);
 

@@ -7,10 +7,17 @@ const app = express();
 app.use(cors());
 
 const httpServer = createServer(app);
+
+// Get allowed origins from environment variable or allow all in development
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : "*";
+
 const io = new Server(httpServer, {
   cors: {
-    origin: "*",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
