@@ -80,14 +80,14 @@ function LoginScreen({
               type="text"
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
-              placeholder="http://localhost:3001"
+              placeholder={window.location.protocol === 'https:' ? "https://your-server.railway.app" : "http://localhost:3001"}
               required
               className="p-3 border-2 border-gray-700 bg-gray-800 text-white rounded-lg text-base focus:outline-none focus:border-[#87BAC3] focus:bg-[#D6F4ED] focus:text-gray-900 transition-colors placeholder-gray-500"
             />
             <small className="text-gray-400 text-xs leading-relaxed">
-              Use your computer's IP address for network access
-              <br />
-              Example: http://192.168.1.100:3001
+              {window.location.protocol === 'https:' 
+                ? "Enter your Railway server URL (must use https://)"
+                : "Use your computer's IP address for network access. Example: http://192.168.1.100:3001"}
             </small>
           </div>
 

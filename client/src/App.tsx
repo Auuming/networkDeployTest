@@ -20,9 +20,19 @@ function App() {
       if (envServerUrl) {
         setServerUrl(envServerUrl);
       } else {
-        const hostname = window.location.hostname;
-        const defaultPort = '3001';
-        setServerUrl(`http://${hostname}:${defaultPort}`);
+        // Only use localhost fallback in development
+        // In production, require VITE_SERVER_URL to be set
+        const isProduction = window.location.protocol === 'https:';
+        if (isProduction) {
+          // In production, show error if env var is not set
+          console.warn('VITE_SERVER_URL environment variable is not set. Please configure it in your deployment platform.');
+          setServerUrl(''); // Empty string will show error in LoginScreen
+        } else {
+          // Development fallback
+          const hostname = window.location.hostname;
+          const defaultPort = '3001';
+          setServerUrl(`http://${hostname}:${defaultPort}`);
+        }
       }
     }
   }, []);
@@ -42,6 +52,13 @@ function App() {
 
     if (!url || url.trim().length === 0) {
       setError('Please enter server URL');
+      return;
+    }
+
+    // Validate URL format - ensure HTTPS in production
+    const isProduction = window.location.protocol === 'https:';
+    if (isProduction && !url.startsWith('https://')) {
+      setError('Server URL must use HTTPS in production. Please use https://');
       return;
     }
 

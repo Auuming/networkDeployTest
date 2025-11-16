@@ -22,8 +22,13 @@ const httpServer = createServer(app);
 
 // Get allowed origins from environment variable or allow all in development
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',')
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
   : "*";
+
+// Warn in production if ALLOWED_ORIGINS is not set
+if (process.env.NODE_ENV === 'production' && !process.env.ALLOWED_ORIGINS) {
+  console.warn('⚠️  WARNING: ALLOWED_ORIGINS is not set in production. CORS is allowing all origins. This is a security risk!');
+}
 
 const io = new Server(httpServer, {
   cors: {
