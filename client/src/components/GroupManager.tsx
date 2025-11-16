@@ -87,13 +87,13 @@ function GroupManager({
   };
 
   return (
-    <div className="p-5 flex-1 overflow-y-auto flex flex-col">
+    <div className="p-5 flex-1 overflow-y-auto flex flex-col bg-white dark:bg-gray-900">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-base md:text-lg font-semibold text-gray-200">
+        <h2 className="text-base md:text-lg font-semibold text-gray-800 dark:text-gray-200">
           Groups
         </h2>
         <button
-          className="bg-primary text-white border-none px-3 py-1.5 rounded-md text-xs md:text-sm font-semibold cursor-pointer transition-colors hover:bg-primary-dark"
+          className="bg-[#00C300] dark:bg-gray-700 text-white border-none px-3 py-1.5 rounded-md text-xs md:text-sm font-semibold cursor-pointer transition-colors hover:bg-[#00B300] dark:hover:bg-gray-600"
           onClick={() => setShowCreateForm(!showCreateForm)}
         >
           + New
@@ -103,7 +103,7 @@ function GroupManager({
       {showCreateForm && (
         <form
           onSubmit={handleCreateGroup}
-          className="mb-4 p-3 bg-gray-800 rounded-lg border border-gray-700"
+          className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
         >
           <input
             type="text"
@@ -112,9 +112,9 @@ function GroupManager({
             placeholder="Group name"
             autoFocus
             disabled={isCreating}
-            className="w-full p-2 border border-gray-700 bg-gray-900 text-white rounded-md text-sm md:text-base mb-2 focus:outline-none focus:border-[#87BAC3] focus:bg-[#D6F4ED] focus:text-gray-900 transition-colors placeholder-gray-500"
+            className="w-full p-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md text-sm md:text-base mb-2 focus:outline-none focus:border-[#00C300] dark:focus:border-[#00E676] focus:bg-white dark:focus:bg-gray-900 transition-colors placeholder-gray-400 dark:placeholder-gray-500"
           />
-          <div className="mb-2 flex items-center gap-3 p-2.5 rounded-lg border border-gray-700 bg-gray-800/50 hover:bg-gray-800 transition-colors">
+          <div className="mb-2 flex items-center gap-3 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             <div className="relative flex items-center">
               <input
                 type="checkbox"
@@ -133,8 +133,8 @@ function GroupManager({
                 htmlFor="hasMinimumAge"
                 className={`flex items-center justify-center w-5 h-5 rounded-md border-2 cursor-pointer transition-all ${
                   hasMinimumAge
-                    ? "bg-primary border-transparent shadow-lg shadow-primary/30"
-                    : "border-gray-600 bg-gray-900 hover:border-[#87BAC3]"
+                    ? "bg-[#00C300] dark:bg-[#00E676] border-transparent shadow-lg shadow-[#00C300]/30 dark:shadow-[#00E676]/30"
+                    : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-[#00C300] dark:hover:border-[#00E676]"
                 } ${isCreating ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {hasMinimumAge && (
@@ -155,7 +155,7 @@ function GroupManager({
             <label
               htmlFor="hasMinimumAge"
               className={`text-sm cursor-pointer flex-1 ${
-                hasMinimumAge ? "text-gray-200 font-medium" : "text-gray-400"
+                hasMinimumAge ? "text-gray-800 dark:text-gray-200 font-medium" : "text-gray-600 dark:text-gray-400"
               } ${isCreating ? "cursor-not-allowed" : ""}`}
             >
               Set minimum age requirement
@@ -170,14 +170,14 @@ function GroupManager({
               min="1"
               max="150"
               disabled={isCreating}
-              className="w-full p-2 border border-gray-700 bg-gray-900 text-white rounded-md text-sm md:text-base mb-2 focus:outline-none focus:border-[#87BAC3] focus:bg-[#D6F4ED] focus:text-gray-900 transition-colors placeholder-gray-500"
+              className="w-full p-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-md text-sm md:text-base mb-2 focus:outline-none focus:border-[#00C300] dark:focus:border-[#00E676] focus:bg-white dark:focus:bg-gray-900 transition-colors placeholder-gray-400 dark:placeholder-gray-500"
             />
           )}
           <div className="flex gap-2">
             <button
               type="submit"
               disabled={!groupName.trim() || isCreating}
-              className="flex-1 p-2 border-none rounded-md text-xs md:text-sm font-medium cursor-pointer transition-colors bg-primary text-white hover:bg-primary-dark disabled:bg-gray-700 disabled:cursor-not-allowed"
+              className="flex-1 p-2 border-none rounded-md text-xs md:text-sm font-medium cursor-pointer transition-colors bg-[#00C300] dark:bg-gray-700 text-white hover:bg-[#00B300] dark:hover:bg-gray-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
             >
               {isCreating ? "Creating..." : "Create"}
             </button>
@@ -189,7 +189,7 @@ function GroupManager({
                 setHasMinimumAge(false);
                 setMinimumAge("");
               }}
-              className="flex-1 p-2 border-none rounded-md text-xs md:text-sm font-medium cursor-pointer transition-colors bg-gray-700 text-gray-200 hover:bg-gray-600"
+              className="flex-1 p-2 border-none rounded-md text-xs md:text-sm font-medium cursor-pointer transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
             >
               Cancel
             </button>
@@ -199,7 +199,7 @@ function GroupManager({
 
       <div className="flex flex-col gap-3">
         {groups.length === 0 ? (
-          <div className="text-center text-gray-500 py-5 text-sm">
+          <div className="text-center text-gray-400 dark:text-gray-500 py-5 text-sm">
             No groups yet. Create one!
           </div>
         ) : (
@@ -214,32 +214,32 @@ function GroupManager({
                 key={group.groupId}
                 className={`p-3 rounded-lg border transition-colors ${
                   isMember
-                    ? "border-[#87BAC3] bg-[#D6F4ED]/20"
-                    : "border-gray-700 bg-gray-800"
+                    ? "border-[#00C300] dark:border-gray-700 bg-[#E8F5E9]/30 dark:bg-gray-800"
+                    : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="font-semibold text-gray-200 text-sm md:text-base flex-1">
+                  <div className="font-semibold text-gray-800 dark:text-gray-200 text-sm md:text-base flex-1">
                     {group.name}
                   </div>
                   {isCreator && (
-                    <span className="px-2 py-0.5 rounded-lg text-[10px] md:text-xs font-semibold bg-[#87BAC3] text-gray-900">
+                    <span className="px-2 py-0.5 rounded-lg text-[10px] md:text-xs font-semibold bg-[#00C300] dark:bg-gray-700 text-white">
                       Creator
                     </span>
                   )}
                   {isMember && (
-                    <span className="px-2 py-0.5 rounded-lg text-[10px] md:text-xs font-semibold bg-[#D6F4ED] text-[#53629E]">
+                    <span className="px-2 py-0.5 rounded-lg text-[10px] md:text-xs font-semibold bg-[#E8F5E9] dark:bg-gray-700 text-[#00C300] dark:text-[#00E676]">
                       Member
                     </span>
                   )}
                 </div>
-                <div className="mb-2 text-gray-400 text-xs md:text-sm">
+                <div className="mb-2 text-gray-600 dark:text-gray-400 text-xs md:text-sm">
                   <small>
                     Members: {group.members.map((m) => m.name).join(", ")}
                   </small>
                   {group.minimumAge && (
                     <div className="mt-1">
-                      <small className="text-[#87BAC3] font-semibold">
+                      <small className="text-[#00C300] dark:text-[#00E676] font-semibold">
                         Minimum age: {group.minimumAge}+
                       </small>
                     </div>
@@ -248,14 +248,14 @@ function GroupManager({
                 <div className="flex gap-2">
                   {isMember ? (
                     <button
-                      className="flex-1 px-3 py-1.5 border-none rounded-md text-xs md:text-sm font-medium cursor-pointer transition-colors bg-primary text-white hover:bg-primary-dark"
+                      className="flex-1 px-3 py-1.5 border-none rounded-md text-xs md:text-sm font-medium cursor-pointer transition-colors bg-[#00C300] dark:bg-gray-700 text-white hover:bg-[#00B300] dark:hover:bg-gray-600"
                       onClick={() => onSelectGroup(group)}
                     >
                       Open Chat
                     </button>
                   ) : (
                     <button
-                      className="flex-1 px-3 py-1.5 border-none rounded-md text-xs md:text-sm font-medium cursor-pointer transition-colors bg-gray-700 text-gray-200 hover:bg-gray-600"
+                      className="flex-1 px-3 py-1.5 border-none rounded-md text-xs md:text-sm font-medium cursor-pointer transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
                       onClick={() => handleJoinGroup(group)}
                     >
                       Join Group

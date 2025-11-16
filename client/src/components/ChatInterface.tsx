@@ -3,6 +3,7 @@ import { Socket } from "socket.io-client";
 import ClientList from "./ClientList";
 import ChatRoom from "./ChatRoom";
 import GroupManager from "./GroupManager";
+import ThemeToggle from "./ThemeToggle";
 import {
   Client,
   Group,
@@ -76,7 +77,15 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
     });
 
     socket.on("privateMessage", (messageData: PrivateMessageData) => {
-      const { roomId, sender, message, timestamp, recipient, messageId, reactions } = messageData;
+      const {
+        roomId,
+        sender,
+        message,
+        timestamp,
+        recipient,
+        messageId,
+        reactions,
+      } = messageData;
       console.log("Received private message:", messageData);
 
       if (sender.socketId !== socket.id && recipient.socketId === socket.id) {
@@ -105,20 +114,25 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
         const existingIndex = roomMessages.findIndex(
           (msg) =>
             msg.messageId === messageId ||
-            (msg.messageId?.startsWith('temp-') &&
-            msg.message === message &&
-            msg.sender === sender.name &&
-            Math.abs(
-              new Date(msg.timestamp).getTime() - new Date(timestamp).getTime()
-            ) < 2000)
+            (msg.messageId?.startsWith("temp-") &&
+              msg.message === message &&
+              msg.sender === sender.name &&
+              Math.abs(
+                new Date(msg.timestamp).getTime() -
+                  new Date(timestamp).getTime()
+              ) < 2000)
         );
 
         if (existingIndex >= 0) {
-          if (roomMessages[existingIndex].messageId?.startsWith('temp-') && messageId) {
+          if (
+            roomMessages[existingIndex].messageId?.startsWith("temp-") &&
+            messageId
+          ) {
             roomMessages[existingIndex] = {
               ...roomMessages[existingIndex],
               messageId,
-              reactions: reactions || roomMessages[existingIndex].reactions || {},
+              reactions:
+                reactions || roomMessages[existingIndex].reactions || {},
             };
             newMessages.set(roomId, [...roomMessages]);
           }
@@ -141,7 +155,8 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
     });
 
     socket.on("groupMessage", (messageData: GroupMessageData) => {
-      const { groupId, sender, message, timestamp, messageId, reactions } = messageData;
+      const { groupId, sender, message, timestamp, messageId, reactions } =
+        messageData;
       console.log("Received group message:", messageData);
 
       setMessages((prev) => {
@@ -151,20 +166,25 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
         const existingIndex = roomMessages.findIndex(
           (msg) =>
             msg.messageId === messageId ||
-            (msg.messageId?.startsWith('temp-') &&
-            msg.message === message &&
-            msg.sender === sender.name &&
-            Math.abs(
-              new Date(msg.timestamp).getTime() - new Date(timestamp).getTime()
-            ) < 2000)
+            (msg.messageId?.startsWith("temp-") &&
+              msg.message === message &&
+              msg.sender === sender.name &&
+              Math.abs(
+                new Date(msg.timestamp).getTime() -
+                  new Date(timestamp).getTime()
+              ) < 2000)
         );
 
         if (existingIndex >= 0) {
-          if (roomMessages[existingIndex].messageId?.startsWith('temp-') && messageId) {
+          if (
+            roomMessages[existingIndex].messageId?.startsWith("temp-") &&
+            messageId
+          ) {
             roomMessages[existingIndex] = {
               ...roomMessages[existingIndex],
               messageId,
-              reactions: reactions || roomMessages[existingIndex].reactions || {},
+              reactions:
+                reactions || roomMessages[existingIndex].reactions || {},
             };
             newMessages.set(groupId, [...roomMessages]);
           }
@@ -185,27 +205,36 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
       });
     });
 
-    socket.on("reactionUpdate", ({ messageId, reactions }: { messageId: string; reactions: Record<string, string[]> }) => {
-      setMessages((prev) => {
-        const newMessages = new Map(prev);
-        let updated = false;
+    socket.on(
+      "reactionUpdate",
+      ({
+        messageId,
+        reactions,
+      }: {
+        messageId: string;
+        reactions: Record<string, string[]>;
+      }) => {
+        setMessages((prev) => {
+          const newMessages = new Map(prev);
+          let updated = false;
 
-        newMessages.forEach((roomMessages, roomKey) => {
-          const updatedMessages = roomMessages.map((msg) => {
-            if (msg.messageId === messageId) {
-              updated = true;
-              return { ...msg, reactions };
+          newMessages.forEach((roomMessages, roomKey) => {
+            const updatedMessages = roomMessages.map((msg) => {
+              if (msg.messageId === messageId) {
+                updated = true;
+                return { ...msg, reactions };
+              }
+              return msg;
+            });
+            if (updated) {
+              newMessages.set(roomKey, updatedMessages);
             }
-            return msg;
           });
-          if (updated) {
-            newMessages.set(roomKey, updatedMessages);
-          }
-        });
 
-        return updated ? newMessages : prev;
-      });
-    });
+          return updated ? newMessages : prev;
+        });
+      }
+    );
 
     socket.on("error", ({ message }: { message: string }) => {
       alert(`Error: ${message}`);
@@ -349,10 +378,10 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
   const currentMessages = getCurrentMessages();
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 rounded-xl shadow-2xl overflow-hidden md:rounded-xl border border-gray-800">
-      <div className="bg-gray-800 border-b border-gray-700 text-white p-5 flex justify-between items-center shadow-md">
+    <div className="flex flex-col h-screen bg-white dark:bg-gray-900 rounded-xl shadow-2xl overflow-hidden md:rounded-xl border border-gray-200 dark:border-gray-800">
+      <div className="bg-[#00C300] dark:bg-gray-800 border-b border-[#00B300] dark:border-gray-700 text-white p-5 flex justify-between items-center shadow-md">
         <button
-          className="md:hidden bg-white/20 border-2 border-white text-white px-3 py-2 rounded-md text-lg font-semibold transition-all hover:bg-white hover:text-primary"
+          className="md:hidden bg-white/20 border-2 border-white text-white px-3 py-2 rounded-md text-lg font-semibold transition-all hover:bg-white hover:text-[#00C300] dark:hover:text-gray-800"
           onClick={() => setSidebarOpen(!sidebarOpen)}
           aria-label="Toggle menu"
         >
@@ -361,17 +390,20 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
         <h1 className="text-xl md:text-2xl font-semibold flex-1 text-center md:text-left md:ml-4">
           LineNai WongMan - {clientName}
         </h1>
-        <button
-          onClick={onLogout}
-          className="bg-white/20 border-2 border-white text-white px-5 py-2 rounded-md text-xs md:text-sm font-medium transition-all hover:bg-white hover:text-primary"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <button
+            onClick={onLogout}
+            className="bg-white/20 border-2 border-white text-white px-5 py-2 rounded-md text-xs md:text-sm font-medium transition-all hover:bg-white hover:text-[#00C300] dark:hover:text-gray-800"
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden relative">
         <div
-          className={`fixed md:static inset-y-0 left-0 w-full md:w-80 bg-gray-900 border-r border-gray-800 flex flex-col overflow-hidden z-[100] transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
+          className={`fixed md:static inset-y-0 left-0 w-full md:w-80 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden z-[100] transform transition-transform duration-300 ease-in-out md:translate-x-0 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -398,7 +430,7 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
           />
         )}
 
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden bg-[#F5F5F5] dark:bg-gray-900">
           {activeChat ? (
             <ChatRoom
               chat={activeChat}
@@ -409,7 +441,7 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
               currentSocketId={socket.id || ""}
             />
           ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-500 text-lg md:text-xl p-5 text-center">
+            <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400 text-lg md:text-xl p-5 text-center">
               Select a client or group to start chatting
             </div>
           )}

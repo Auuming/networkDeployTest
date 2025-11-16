@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -8,21 +9,29 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#473472',
-          dark: '#3A2A5C',
-          light: '#5A4478',
+          DEFAULT: '#00C300', // LINE green
+          dark: '#00B300',
+          light: '#00E676',
         },
-        'primary-dark': '#3A2A5C',
+        'primary-dark': '#00A000',
         secondary: {
-          DEFAULT: '#53629E',
-          light: '#6B7AB8',
+          DEFAULT: '#00C300',
+          light: '#00E676',
         },
         accent: {
-          DEFAULT: '#87BAC3',
-          light: '#A5D0D8',
+          DEFAULT: '#00C300',
+          light: '#00E676',
         },
         light: {
-          DEFAULT: '#D6F4ED',
+          DEFAULT: '#E8F5E9', // Light green background
+        },
+        line: {
+          green: '#00C300',
+          'green-dark': '#00B300',
+          'green-light': '#00E676',
+          background: '#F5F5F5',
+          'chat-sent': '#DCF8C6',
+          'chat-received': '#FFFFFF',
         },
       },
     },

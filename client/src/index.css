@@ -8,9 +8,14 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #1a1625;
+  background: #F5F5F5; /* LINE background color - light mode */
   min-height: 100vh;
   padding: 20px;
+  transition: background-color 0.3s ease;
+}
+
+.dark body {
+  background: #1a1625; /* Dark mode background */
 }
 
 #root {
