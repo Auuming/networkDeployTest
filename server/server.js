@@ -30,12 +30,20 @@ if (process.env.NODE_ENV === 'production' && !process.env.ALLOWED_ORIGINS) {
   console.warn('⚠️  WARNING: ALLOWED_ORIGINS is not set in production. CORS is allowing all origins. This is a security risk!');
 }
 
+const corsConfig = allowedOrigins === "*" 
+  ? {
+      origin: true, 
+      methods: ["GET", "POST"],
+      credentials: false, 
+    }
+  : {
+      origin: allowedOrigins,
+      methods: ["GET", "POST"],
+      credentials: true,
+    };
+
 const io = new Server(httpServer, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
+  cors: corsConfig,
 });
 
 const clients = new Map();
