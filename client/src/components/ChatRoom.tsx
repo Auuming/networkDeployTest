@@ -24,7 +24,7 @@ function ChatRoom({
 }: ChatRoomProps) {
   const [inputMessage, setInputMessage] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef<boolean>(false);
   const previousChatRef = useRef<ActiveChat | null>(null);
 
