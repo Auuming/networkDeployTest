@@ -25,6 +25,7 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
   const [activeChat, setActiveChat] = useState<ActiveChat | null>(null);
   const [messages, setMessages] = useState<Map<string, Message[]>>(new Map());
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+  const [typingUsers, setTypingUsers] = useState<Map<string, Set<string>>>(new Map());
 
   useEffect(() => {
     console.log("ChatInterface mounted, socket ID:", socket.id);
@@ -240,6 +241,70 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
       alert(`Error: ${message}`);
     });
 
+    // Typing indicator listeners for private messages
+    socket.on("privateTypingStart", ({ sender }: { sender: { name: string; socketId: string } }) => {
+      if (sender.socketId === socket.id) return; // Don't show own typing indicator
+      
+      const roomId = [socket.id, sender.socketId].sort().join("-");
+      setTypingUsers((prev) => {
+        const newTypingUsers = new Map(prev);
+        const typingSet = newTypingUsers.get(roomId) || new Set<string>();
+        typingSet.add(sender.name);
+        newTypingUsers.set(roomId, typingSet);
+        return newTypingUsers;
+      });
+    });
+
+    socket.on("privateTypingStop", ({ sender }: { sender: { name: string; socketId: string } }) => {
+      if (sender.socketId === socket.id) return;
+      
+      const roomId = [socket.id, sender.socketId].sort().join("-");
+      setTypingUsers((prev) => {
+        const newTypingUsers = new Map(prev);
+        const typingSet = newTypingUsers.get(roomId);
+        if (typingSet) {
+          typingSet.delete(sender.name);
+          if (typingSet.size === 0) {
+            newTypingUsers.delete(roomId);
+          } else {
+            newTypingUsers.set(roomId, typingSet);
+          }
+        }
+        return newTypingUsers;
+      });
+    });
+
+    // Typing indicator listeners for group messages
+    socket.on("groupTypingStart", ({ groupId, sender }: { groupId: string; sender: { name: string; socketId: string } }) => {
+      if (sender.socketId === socket.id) return; // Don't show own typing indicator
+      
+      setTypingUsers((prev) => {
+        const newTypingUsers = new Map(prev);
+        const typingSet = newTypingUsers.get(groupId) || new Set<string>();
+        typingSet.add(sender.name);
+        newTypingUsers.set(groupId, typingSet);
+        return newTypingUsers;
+      });
+    });
+
+    socket.on("groupTypingStop", ({ groupId, sender }: { groupId: string; sender: { name: string; socketId: string } }) => {
+      if (sender.socketId === socket.id) return;
+      
+      setTypingUsers((prev) => {
+        const newTypingUsers = new Map(prev);
+        const typingSet = newTypingUsers.get(groupId);
+        if (typingSet) {
+          typingSet.delete(sender.name);
+          if (typingSet.size === 0) {
+            newTypingUsers.delete(groupId);
+          } else {
+            newTypingUsers.set(groupId, typingSet);
+          }
+        }
+        return newTypingUsers;
+      });
+    });
+
     return () => {
       socket.off("clientList");
       socket.off("clientJoined");
@@ -252,6 +317,10 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
       socket.off("groupMessage");
       socket.off("reactionUpdate");
       socket.off("error");
+      socket.off("privateTypingStart");
+      socket.off("privateTypingStop");
+      socket.off("groupTypingStart");
+      socket.off("groupTypingStop");
     };
   }, [socket, activeChat, clients]);
 
@@ -375,7 +444,23 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
     return messages.get(messageKey) || [];
   };
 
+  const getCurrentTypingUsers = (): string[] => {
+    if (!activeChat) return [];
+
+    let messageKey: string;
+    if (activeChat.type === "private") {
+      const roomId = [socket.id, activeChat.id].sort().join("-");
+      messageKey = roomId;
+    } else {
+      messageKey = activeChat.id;
+    }
+
+    const typingSet = typingUsers.get(messageKey);
+    return typingSet ? Array.from(typingSet) : [];
+  };
+
   const currentMessages = getCurrentMessages();
+  const currentTypingUsers = getCurrentTypingUsers();
 
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-gray-900 rounded-xl shadow-2xl overflow-hidden md:rounded-xl border border-gray-200 dark:border-gray-800">
@@ -439,6 +524,7 @@ function ChatInterface({ socket, clientName, onLogout }: ChatInterfaceProps) {
               currentClientName={clientName}
               socket={socket}
               currentSocketId={socket.id || ""}
+              typingUsers={currentTypingUsers}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400 text-lg md:text-xl p-5 text-center">

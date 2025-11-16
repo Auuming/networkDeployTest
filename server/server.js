@@ -439,6 +439,70 @@ io.on("connection", (socket) => {
     });
   });
 
+  // Typing indicator handlers for private messages
+  socket.on("privateTypingStart", ({ recipientId }) => {
+    const sender = clients.get(socket.id);
+    if (!sender) return;
+
+    const recipient = clients.get(recipientId);
+    if (!recipient) return;
+
+    io.to(recipientId).emit("privateTypingStart", {
+      sender: {
+        name: sender.name,
+        socketId: socket.id,
+      },
+    });
+  });
+
+  socket.on("privateTypingStop", ({ recipientId }) => {
+    const sender = clients.get(socket.id);
+    if (!sender) return;
+
+    const recipient = clients.get(recipientId);
+    if (!recipient) return;
+
+    io.to(recipientId).emit("privateTypingStop", {
+      sender: {
+        name: sender.name,
+        socketId: socket.id,
+      },
+    });
+  });
+
+  // Typing indicator handlers for group messages
+  socket.on("groupTypingStart", ({ groupId }) => {
+    const sender = clients.get(socket.id);
+    if (!sender) return;
+
+    const group = groups.get(groupId);
+    if (!group || !group.members.has(socket.id)) return;
+
+    socket.to(groupId).emit("groupTypingStart", {
+      groupId,
+      sender: {
+        name: sender.name,
+        socketId: socket.id,
+      },
+    });
+  });
+
+  socket.on("groupTypingStop", ({ groupId }) => {
+    const sender = clients.get(socket.id);
+    if (!sender) return;
+
+    const group = groups.get(groupId);
+    if (!group || !group.members.has(socket.id)) return;
+
+    socket.to(groupId).emit("groupTypingStop", {
+      groupId,
+      sender: {
+        name: sender.name,
+        socketId: socket.id,
+      },
+    });
+  });
+
   socket.on("disconnect", () => {
     const client = clients.get(socket.id);
 

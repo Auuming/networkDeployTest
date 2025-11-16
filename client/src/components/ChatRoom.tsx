@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Socket } from "socket.io-client";
 import { ActiveChat, Message } from "../types";
 import formatText from "../utils/formatText";
@@ -10,6 +10,7 @@ interface ChatRoomProps {
   readonly currentClientName: string;
   readonly socket: Socket;
   readonly currentSocketId: string;
+  readonly typingUsers: string[];
 }
 
 function ChatRoom({
@@ -19,20 +20,116 @@ function ChatRoom({
   currentClientName: _currentClientName,
   socket,
   currentSocketId,
+  typingUsers,
 }: ChatRoomProps) {
   const [inputMessage, setInputMessage] = useState<string>("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTypingRef = useRef<boolean>(false);
+  const previousChatRef = useRef<ActiveChat | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, typingUsers]);
+
+  const handleTypingStart = useCallback(() => {
+    if (isTypingRef.current) return; // Already typing
+    
+    isTypingRef.current = true;
+    
+    if (chat.type === 'private') {
+      socket.emit('privateTypingStart', { recipientId: chat.id });
+    } else if (chat.type === 'group') {
+      socket.emit('groupTypingStart', { groupId: chat.id });
+    }
+  }, [chat, socket]);
+
+  const handleTypingStop = useCallback(() => {
+    if (!isTypingRef.current) return; // Not typing
+    
+    isTypingRef.current = false;
+    
+    if (chat.type === 'private') {
+      socket.emit('privateTypingStop', { recipientId: chat.id });
+    } else if (chat.type === 'group') {
+      socket.emit('groupTypingStop', { groupId: chat.id });
+    }
+  }, [chat, socket]);
+
+  // Cleanup typing timeout on unmount or chat change
+  useEffect(() => {
+    // Stop typing for previous chat if it exists
+    if (previousChatRef.current && isTypingRef.current) {
+      const prevChat = previousChatRef.current;
+      if (prevChat.type === 'private') {
+        socket.emit('privateTypingStop', { recipientId: prevChat.id });
+      } else if (prevChat.type === 'group') {
+        socket.emit('groupTypingStop', { groupId: prevChat.id });
+      }
+    }
+    
+    // Reset typing state when chat changes
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    isTypingRef.current = false;
+    previousChatRef.current = chat;
+    
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      // Stop typing on unmount
+      if (isTypingRef.current) {
+        if (chat.type === 'private') {
+          socket.emit('privateTypingStop', { recipientId: chat.id });
+        } else if (chat.type === 'group') {
+          socket.emit('groupTypingStop', { groupId: chat.id });
+        }
+      }
+    };
+  }, [chat, socket]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputMessage(value);
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // If user is typing, emit typing start
+    if (value.trim().length > 0) {
+      handleTypingStart();
+      
+      // Set timeout to stop typing after 2 seconds of inactivity
+      typingTimeoutRef.current = setTimeout(() => {
+        handleTypingStop();
+      }, 2000);
+    } else {
+      // If input is empty, stop typing immediately
+      handleTypingStop();
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputMessage.trim()) {
+      // Stop typing when message is sent
+      handleTypingStop();
       onSendMessage(inputMessage);
       setInputMessage("");
     }
+  };
+
+  const handleInputBlur = () => {
+    // Stop typing when input loses focus
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    handleTypingStop();
   };
 
   const formatTime = (timestamp: string): string => {
@@ -162,6 +259,26 @@ function ChatRoom({
             );
           })
         )}
+        
+        {/* Typing Indicator */}
+        {typingUsers.length > 0 && (
+          <div className="self-start max-w-[70%] md:max-w-[70%] flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 bg-[#00C300] dark:bg-[#00E676] rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1.4s' }}></div>
+              <div className="w-2 h-2 bg-[#00C300] dark:bg-[#00E676] rounded-full animate-bounce" style={{ animationDelay: '200ms', animationDuration: '1.4s' }}></div>
+              <div className="w-2 h-2 bg-[#00C300] dark:bg-[#00E676] rounded-full animate-bounce" style={{ animationDelay: '400ms', animationDuration: '1.4s' }}></div>
+            </div>
+            <span className="text-[#00C300] dark:text-[#00E676] text-sm italic font-medium">
+              {typingUsers.length === 1 
+                ? `${typingUsers[0]} is typing...`
+                : typingUsers.length === 2
+                ? `${typingUsers[0]} and ${typingUsers[1]} are typing...`
+                : `${typingUsers[0]} and ${typingUsers.length - 1} others are typing...`
+              }
+            </span>
+          </div>
+        )}
+        
         <div ref={messagesEndRef} />
       </div>
 
@@ -172,7 +289,8 @@ function ChatRoom({
         <input
           type="text"
           value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
           placeholder={`Type a message${
             chat.type === "private" ? " (private)" : " (group)"
           }...`}
