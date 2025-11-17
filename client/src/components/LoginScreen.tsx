@@ -40,7 +40,10 @@ function LoginScreen({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="font-medium text-gray-700 dark:text-gray-300 text-sm">
+            <label
+              htmlFor="name"
+              className="font-medium text-gray-700 dark:text-gray-300 text-sm"
+            >
               Your Name
             </label>
             <input
@@ -56,7 +59,10 @@ function LoginScreen({
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="age" className="font-medium text-gray-700 dark:text-gray-300 text-sm">
+            <label
+              htmlFor="age"
+              className="font-medium text-gray-700 dark:text-gray-300 text-sm"
+            >
               Your Age
             </label>
             <input
@@ -84,14 +90,18 @@ function LoginScreen({
               type="text"
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
-              placeholder={window.location.protocol === 'https:' ? "https://your-server.railway.app" : "http://localhost:3001"}
+              placeholder={
+                window.location.protocol === "https:"
+                  ? "https://your-server.railway.app"
+                  : "https://appealing-joy-production-1d2e.up.railway.app/"
+              }
               required
               className="p-3 border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-base focus:outline-none focus:border-[#00C300] dark:focus:border-[#00E676] focus:bg-white dark:focus:bg-gray-800 transition-colors placeholder-gray-400 dark:placeholder-gray-500"
             />
             <small className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed">
-              {window.location.protocol === 'https:' 
+              {window.location.protocol === "https:"
                 ? "Enter your Railway server URL (must use https://)"
-                : "Use your computer's IP address for network access. Example: http://192.168.1.100:3001"}
+                : ""}
             </small>
           </div>
 
@@ -108,26 +118,6 @@ function LoginScreen({
             Connect to Server
           </button>
         </form>
-
-        <div className="mt-8 p-5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <h3 className="text-gray-800 dark:text-gray-200 mb-3 text-base font-semibold">
-            📋 Features
-          </h3>
-          <ul className="list-none p-0">
-            <li className="text-gray-600 dark:text-gray-300 py-1.5 pl-5 relative text-sm before:content-['✓'] before:absolute before:left-0 before:text-[#00C300] dark:before:text-[#00E676] before:font-bold">
-              Private messaging between clients
-            </li>
-            <li className="text-gray-600 dark:text-gray-300 py-1.5 pl-5 relative text-sm before:content-['✓'] before:absolute before:left-0 before:text-[#00C300] dark:before:text-[#00E676] before:font-bold">
-              Create and join group chats
-            </li>
-            <li className="text-gray-600 dark:text-gray-300 py-1.5 pl-5 relative text-sm before:content-['✓'] before:absolute before:left-0 before:text-[#00C300] dark:before:text-[#00E676] before:font-bold">
-              See all connected clients
-            </li>
-            <li className="text-gray-600 dark:text-gray-300 py-1.5 pl-5 relative text-sm before:content-['✓'] before:absolute before:left-0 before:text-[#00C300] dark:before:text-[#00E676] before:font-bold">
-              Real-time message updates
-            </li>
-          </ul>
-        </div>
       </div>
     </div>
   );
